@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
-	"sync/atomic"
 )
 
 
-	var apiCfg apiConfig
+
+var apiCfg apiConfig
+	//
 
 func main() {
 	mux := http.NewServeMux()
@@ -20,42 +21,9 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", app)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hit)
 	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
+	mux.HandleFunc("POST /api/validate_chirp", validate)
 	sv := http.Server{Handler: mux,Addr: ":8080"}
+	log.Println("Serving files from . on port: 8080")
 	sv.ListenAndServe()
 }
 
-type apiConfig struct {
-	fileserverHits atomic.Int32
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(w,r)
-	})
-}
-
-func app(w http.ResponseWriter,r *http.Request){
-	w.Header().Set("Content-Type","text/plain; charset=utf-8")
-	w.WriteHeader(200)
-	_,_ = w.Write([]byte("OK"))
-}
-
-func (cfg *apiConfig) hit(w http.ResponseWriter,_ *http.Request){
-	w.Header().Set("Content-Type","text/html; charset=utf-8")
-	w.WriteHeader(200)
-	//head := "<h1>Welcome, Chirpy Admin</h1>"
-	body := fmt.Sprintf("<h1>Welcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>",cfg.fileserverHits.Load())
-	//_,_ = w.Write([]byte(head))
-	_,_ = w.Write([]byte(body))
-	//fmt.Fprintf(w,"Hits: %d", cfg.fileserverHits.Load())
-	
-}
-
-func (cfg *apiConfig) reset(w http.ResponseWriter,_ *http.Request){
-	w.Header().Set("Content-Type","text/plain; charset=utf-8")
-	w.WriteHeader(200)
-	cfg.fileserverHits.Store(0)
-	//_,_ = w.Write([]byte("Hits:"+string(num)))
-}
