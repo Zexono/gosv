@@ -17,9 +17,9 @@ func main() {
 	//mux.HandleFunc("/healthz",app)
 	//mux.HandleFunc("/metrics",apiCfg.hit)
 	//mux.HandleFunc("/reset",apiCfg.reset)
-	mux.HandleFunc("GET /healthz", app)
-	mux.HandleFunc("GET /metrics", apiCfg.hit)
-	mux.HandleFunc("POST /reset", apiCfg.reset)
+	mux.HandleFunc("GET /api/healthz", app)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.hit)
+	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
 	sv := http.Server{Handler: mux,Addr: ":8080"}
 	sv.ListenAndServe()
 }
@@ -43,10 +43,14 @@ func app(w http.ResponseWriter,r *http.Request){
 }
 
 func (cfg *apiConfig) hit(w http.ResponseWriter,_ *http.Request){
-	w.Header().Set("Content-Type","text/plain; charset=utf-8")
+	w.Header().Set("Content-Type","text/html; charset=utf-8")
 	w.WriteHeader(200)
-	fmt.Fprintf(w, "Hits: %d", cfg.fileserverHits.Load())
-	//_,_ = w.Write([]byte("Hits:"+string(num)))
+	//head := "<h1>Welcome, Chirpy Admin</h1>"
+	body := fmt.Sprintf("<h1>Welcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>",cfg.fileserverHits.Load())
+	//_,_ = w.Write([]byte(head))
+	_,_ = w.Write([]byte(body))
+	//fmt.Fprintf(w,"Hits: %d", cfg.fileserverHits.Load())
+	
 }
 
 func (cfg *apiConfig) reset(w http.ResponseWriter,_ *http.Request){
