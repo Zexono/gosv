@@ -21,7 +21,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", app)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hit)
 	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
-	mux.HandleFunc("POST /api/validate_chirp", validate)
+	mux.HandleFunc("POST /api/validate_chirp", chirpsValidate)
 	sv := http.Server{Handler: mux,Addr: ":8080"}
 	log.Println("Serving files from . on port: 8080")
 	sv.ListenAndServe()
