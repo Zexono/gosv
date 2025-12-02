@@ -80,22 +80,9 @@ func chirpsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//clean a body
-	//strings.Contains(sp_body,"kerfuffle")
-	//body = strings.ReplaceAll(body,"kerfuffle","****")
-
-	sp_body := strings.Split(params.Body," ")
-	for i := range sp_body {
-		if strings.ToLower(sp_body[i]) == "kerfuffle" || strings.ToLower(sp_body[i]) == "sharbert" || strings.ToLower(sp_body[i]) == "fornax"{
-			sp_body[i] = "****"
-		}
-	}
-	clean_body := strings.Join(sp_body," ")
-
-
 	respondWithJSON(w, http.StatusOK, returnVals{
 		Valid: true,
-		Cleaned_body: clean_body,
+		Cleaned_body: checkBadword(params.Body),
 	})
 }
 
@@ -124,4 +111,15 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	}
 	w.WriteHeader(code)
 	w.Write(dat)
+}
+
+func checkBadword(s string) string{
+	sp_body := strings.Split(s," ")
+	for i := range sp_body {
+		if strings.ToLower(sp_body[i]) == "kerfuffle" || strings.ToLower(sp_body[i]) == "sharbert" || strings.ToLower(sp_body[i]) == "fornax"{
+			sp_body[i] = "****"
+		}
+	}
+	clean_body := strings.Join(sp_body," ")
+	return clean_body
 }
