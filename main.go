@@ -15,10 +15,13 @@ import (
 
 var apiCfg apiConfig
 	//
+const root = "."
+const port = "8080"
 
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		print(err)
@@ -26,9 +29,10 @@ func main() {
 	}
 	dbQueries := database.New(db)
 	apiCfg.db = dbQueries
+	apiCfg.platform = platform
 
 	mux := http.NewServeMux()
-	h := http.FileServer(http.Dir("."))
+	h := http.FileServer(http.Dir(root))
 
 	mux.Handle("/app/",(http.StripPrefix("/app", apiCfg.middlewareMetricsInc(h))))
 	//mux.HandleFunc("/healthz",app)
@@ -38,8 +42,10 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hit)
 	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
 	mux.HandleFunc("POST /api/validate_chirp", chirpsValidate)
-	sv := http.Server{Handler: mux,Addr: ":8080"}
-	log.Println("Serving files from . on port: 8080")
+	mux.HandleFunc("POST /api/users", userHandler)
+	mux.HandleFunc("POST /api/reset", userResetHandler)
+	sv := http.Server{Handler: mux,Addr: ":"+port}
+	log.Printf("Serving files from %s on port: %s",root,port)
 	sv.ListenAndServe()
 }
 
