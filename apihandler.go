@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+
+	"github.com/Zexono/gosv/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	db *database.Queries
 }
 
 
