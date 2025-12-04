@@ -9,4 +9,7 @@ VALUES (
 RETURNING *;
 
 -- name: DeleteAllUser :exec
-DELETE FROM users ;
+DELETE FROM users;
+
+-- name: GetAllUser :many
+SELECT * FROM users;

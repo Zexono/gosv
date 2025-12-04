@@ -61,7 +61,7 @@ func (cfg *apiConfig) reset(w http.ResponseWriter,_ *http.Request){
 }
 
 
-func chirpsValidate(w http.ResponseWriter, r *http.Request) {
+/*func chirpsValidate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
 	}
@@ -88,7 +88,7 @@ func chirpsValidate(w http.ResponseWriter, r *http.Request) {
 		Valid: true,
 		Cleaned_body: checkBadword(params.Body),
 	})
-}
+}*/
 
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 	if err != nil {
