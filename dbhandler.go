@@ -54,7 +54,11 @@ func userResetHandler(w http.ResponseWriter, _ *http.Request) {
 		respondWithJSON(w, http.StatusForbidden,"")
 		return
 	}
-	apiCfg.db.DeleteAllUser(context.Background())
+	err := apiCfg.db.DeleteAllUser(context.Background())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		return
+	}
 	log.Println("Delete all user")
 	//apiCfg.db.DeleteAllChirp(context.Background())
 }
@@ -122,4 +126,60 @@ func chirpsHandler(w http.ResponseWriter, r *http.Request) {
 		Cleaned_body: checkBadword(params.Body),
 	})*/
 	respondWithJSON(w, http.StatusCreated,chirp)
+}
+
+func chirpGetHandler(w http.ResponseWriter, r *http.Request) {
+	chirp_db ,err := apiCfg.db.GetAllChirp(context.Background())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get Chirp", err)
+		return
+	}
+	//log.Println(db)
+
+	
+	var c []Chirp
+	for _, v := range chirp_db {
+		/*c[i] = Chirp{
+			ID: v.ID,
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+			Body: v.Body,
+			User_id: v.UserID,
+		}*/
+		c = append(c, Chirp{			
+			ID: v.ID,
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+			Body: v.Body,
+			User_id: v.UserID,
+		})
+	}
+	respondWithJSON(w, http.StatusOK,c)
+	
+}
+
+func chirpGetByIDHandler(w http.ResponseWriter, r *http.Request) {
+
+	uid,err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get Chirp", err)
+		return
+	}
+
+	chirp_db ,err := apiCfg.db.GetChirpByID(context.Background(),uid)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't get Chirp", err)
+		return
+	}
+	//log.Println(db)
+		c := Chirp{			
+			ID: chirp_db.ID,
+			CreatedAt: chirp_db.CreatedAt,
+			UpdatedAt: chirp_db.UpdatedAt,
+			Body: chirp_db.Body,
+			User_id: chirp_db.UserID,
+		}
+
+	respondWithJSON(w, http.StatusOK,c)
+	
 }

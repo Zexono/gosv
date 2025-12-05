@@ -46,6 +46,8 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", userResetHandler)
 	mux.HandleFunc("POST /api/chirps", chirpsHandler)
 	mux.HandleFunc("POST /api/u", userGetHandler)
+	mux.HandleFunc("GET /api/chirps", chirpGetHandler)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", chirpGetByIDHandler)
 	sv := http.Server{Handler: mux,Addr: ":"+port}
 	log.Printf("Serving files from %s on port: %s",root,port)
 	sv.ListenAndServe()
