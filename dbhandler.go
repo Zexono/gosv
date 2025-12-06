@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Zexono/gosv/internal/auth"
 	"github.com/Zexono/gosv/internal/database"
 	"github.com/google/uuid"
 )
@@ -17,11 +18,13 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	//Password  string	`json:"password"`
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Email 	  string `json:"email"`
+		Password  string	`json:"password"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -32,21 +35,74 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_db,err := apiCfg.db.CreateUser(context.Background(),params.Email)
+	pass ,err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "password hash error", err)
+		return
+	}
+
+	user_db,err := apiCfg.db.CreateUser(context.Background(),database.CreateUserParams{
+		Email: params.Email,
+		HashedPassword: pass,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
 	}
+
+	
 
 	user := User{
 		ID: user_db.ID,
 		CreatedAt: user_db.CreatedAt,
 		UpdatedAt: user_db.UpdatedAt,
 		Email: user_db.Email,
+		//Password: user_db.HashedPassword,
 	}
 
 
 	respondWithJSON(w, http.StatusCreated,user)
+}
+
+func userLoginHandler(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Email 	  string `json:"email"`
+		Password  string	`json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	user_db , err := apiCfg.db.GetUserByEmail(context.Background(),params.Email)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
+		return
+	}
+
+	pass_match ,err := auth.CheckPasswordHash(params.Password,user_db.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		return
+	}
+	if pass_match {
+		user := User{
+		ID: user_db.ID,
+		CreatedAt: user_db.CreatedAt,
+		UpdatedAt: user_db.UpdatedAt,
+		Email: user_db.Email,
+		//Password: user_db.HashedPassword,
+		}
+		respondWithJSON(w, http.StatusOK,user)
+	}else {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", nil)
+		return
+	}
+
 }
 
 func userResetHandler(w http.ResponseWriter, _ *http.Request) {
