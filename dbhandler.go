@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token	  string	`json:"token"`
 	//Password  string	`json:"password"`
 }
 
@@ -67,7 +68,8 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email 	  string `json:"email"`
-		Password  string	`json:"password"`
+		Password  string `json:"password"`
+		ExpiresIn int `json:"expires_in_seconds"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -90,12 +92,26 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if pass_match {
+		var duration time.Duration
+		if params.ExpiresIn <= 0 || params.ExpiresIn > 3600  {
+			duration = time.Duration(3600 * time.Second)
+		}else {
+			duration = time.Duration(params.ExpiresIn) * time.Second
+		}
+		token , err := auth.MakeJWT(user_db.ID,apiCfg.secret,duration)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "make JWT auth err", err)
+			return
+		}
 		user := User{
 		ID: user_db.ID,
 		CreatedAt: user_db.CreatedAt,
 		UpdatedAt: user_db.UpdatedAt,
 		Email: user_db.Email,
+		Token: token,
+
 		//Password: user_db.HashedPassword,
+
 		}
 		respondWithJSON(w, http.StatusOK,user)
 	}else {
@@ -144,12 +160,15 @@ type Chirp struct {
 func chirpsHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
-		User_id   uuid.UUID `json:"user_id"`
+		//User_id   uuid.UUID `json:"user_id"`
 	}
 	//type returnVals struct {
 	//	Valid bool `json:"valid"`
 		//Cleaned_body string `json:"cleaned_body"`
 	//}
+
+	
+	
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -159,13 +178,25 @@ func chirpsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bearer_token ,err:= auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "unauth bearer token", err)
+		return
+	}
+
+	valid_uid,err := auth.ValidateJWT(bearer_token,apiCfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "JWT invalid", err)
+		return
+	}	
+
 	const maxChirpLength = 140
 	if len(params.Body) > maxChirpLength {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
 
-	chirp_db ,err:= apiCfg.db.CreateChirp(context.Background(),database.CreateChirpParams{Body: params.Body,UserID: params.User_id})
+	chirp_db ,err:= apiCfg.db.CreateChirp(context.Background(),database.CreateChirpParams{Body: params.Body,UserID: valid_uid})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return

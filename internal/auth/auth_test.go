@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -31,6 +32,16 @@ func TestValidateJWT(t *testing.T) {
 	}
 	fmt.Println("pass make")
 
+}
+
+func TestGetBearerToken(t *testing.T) {
+    headers := http.Header{}
+    headers.Set("Authorization", "Bearer my_token")
+
+    token,err := GetBearerToken(headers)
+    if err != nil || token != "my_token"{
+		return 
+	}
 }
 
 /*func TestValidateJWTValidString(t *testing.T){
