@@ -351,3 +351,56 @@ func revokeEndpoint(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusNoContent,nil)
 	
 }
+
+func updateOwnUsernamePassword(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Email 	  string `json:"email"`
+		Password  string `json:"password"`
+	}
+
+	ac_token,err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find token", err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	hash_pass,err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Hash password error", err)
+		return
+	}
+
+	valid_userid,err := auth.ValidateJWT(ac_token,apiCfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid access token", err)
+		return
+	}
+
+	update_user_db, err := apiCfg.db.UpdateUsernamePassword(context.Background(),database.UpdateUsernamePasswordParams{
+		ID: valid_userid,
+		Email: params.Email,
+		HashedPassword: hash_pass,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid user ID", err)
+		return
+	}
+
+	update_user := User{
+		ID: update_user_db.ID,
+		Email: update_user_db.Email,
+		CreatedAt: update_user_db.CreatedAt,
+		UpdatedAt: update_user_db.UpdatedAt,
+	}
+
+	respondWithJSON(w,http.StatusOK,update_user)
+
+}

@@ -57,6 +57,8 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", refreshEndpoint)
 	mux.HandleFunc("POST /api/revoke", revokeEndpoint)
 
+	mux.HandleFunc("PUT /api/users", updateOwnUsernamePassword)
+
 	sv := http.Server{Handler: mux,Addr: ":"+port}
 	log.Printf("Serving files from %s on port: %s",root,port)
 	sv.ListenAndServe()
