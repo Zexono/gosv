@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +13,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
+
+// ErrNoAuthHeaderIncluded -
+var ErrNoAuthHeaderIncluded = errors.New("no auth header included in request")
 
 func HashPassword(password string) (string, error){
 	hashpass , err := argon2id.CreateHash(password,argon2id.DefaultParams)
@@ -42,30 +47,44 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error){
 	return []byte(tokenSecret), nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		return uuid.Nil, err
 	}
 
-	userID, err := token.Claims.GetSubject()
-
-	if err != nil{
-		log.Fatal("unknown claims type, cannot proceed")
+	userIDString, err := token.Claims.GetSubject()
+	if err != nil {
+		return uuid.Nil, err
 	}
 
-	id ,err := uuid.Parse(userID)
-
-	if err != nil{
-		log.Fatal("wtf just happend")
+	issuer, err := token.Claims.GetIssuer()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if issuer != "chirpy" {
+		return uuid.Nil, errors.New("invalid issuer")
 	}
 
-	return  id,nil
+	id, err := uuid.Parse(userIDString)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+	return id, nil
 }
 
 func GetBearerToken(headers http.Header) (string, error){
 	TOKEN_STRING := headers.Get("Authorization")
+	if TOKEN_STRING == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
 	if TOKEN_STRING != "" {
 		TOKEN_AUTH :=  strings.TrimPrefix(TOKEN_STRING, "Bearer ")
 		return TOKEN_AUTH,nil
 	}
 
 	return "",fmt.Errorf("no token string")
+}
+
+func MakeRefreshToken() (string, error){
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b),nil
 }

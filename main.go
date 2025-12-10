@@ -54,6 +54,9 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", chirpGetHandler)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", chirpGetByIDHandler)
 
+	mux.HandleFunc("POST /api/refresh", refreshEndpoint)
+	mux.HandleFunc("POST /api/revoke", revokeEndpoint)
+
 	sv := http.Server{Handler: mux,Addr: ":"+port}
 	log.Printf("Serving files from %s on port: %s",root,port)
 	sv.ListenAndServe()
