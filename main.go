@@ -23,6 +23,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	jwt_secret := os.Getenv("SECRET")
+	api_key := os.Getenv("POLKA_KEY")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		print(err)
@@ -32,6 +33,8 @@ func main() {
 	apiCfg.db = dbQueries
 	apiCfg.platform = platform
 	apiCfg.secret = jwt_secret
+	apiCfg.polkakey = api_key
+	
 	
 	mux := http.NewServeMux()
 	h := http.FileServer(http.Dir(root))
@@ -59,6 +62,8 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", revokeEndpoint)
 
 	mux.HandleFunc("PUT /api/users", updateOwnUsernamePassword)
+
+	mux.HandleFunc("POST /api/polka/webhooks", userPolkaWebhooks)
 
 	sv := http.Server{Handler: mux,Addr: ":"+port}
 	log.Printf("Serving files from %s on port: %s",root,port)

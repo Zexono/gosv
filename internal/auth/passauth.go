@@ -88,3 +88,16 @@ func MakeRefreshToken() (string, error){
 	rand.Read(b)
 	return hex.EncodeToString(b),nil
 }
+
+func GetAPIKey(headers http.Header) (string, error){
+	API_TOKEN_STRING := headers.Get("Authorization")
+	if API_TOKEN_STRING == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
+	if API_TOKEN_STRING != "" {
+		API_TOKEN_AUTH :=  strings.TrimPrefix(API_TOKEN_STRING, "ApiKey ")
+		return API_TOKEN_AUTH,nil
+	}
+
+	return "",fmt.Errorf("no token string")
+}

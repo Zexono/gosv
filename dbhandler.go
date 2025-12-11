@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	ChirpyRed bool		`json:"is_chirpy_red"`
 	//Token	  string	`json:"token"`
 	//RefreshToken string `json:"refresh_token"`
 	//Password  string	`json:"password"`
@@ -59,6 +60,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user_db.CreatedAt,
 		UpdatedAt: user_db.UpdatedAt,
 		Email: user_db.Email,
+		ChirpyRed: user_db.IsChirpyRed,
 		//Password: user_db.HashedPassword,
 	}
 
@@ -132,6 +134,7 @@ func userLoginHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user_db.CreatedAt,
 		UpdatedAt: user_db.UpdatedAt,
 		Email: user_db.Email,
+		ChirpyRed: user_db.IsChirpyRed,
 		//Password: user_db.HashedPassword,
 		}
 
@@ -174,6 +177,44 @@ func userGetHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 	log.Println(db)
 	//apiCfg.db.DeleteAllChirp(context.Background())
+}
+
+func userPolkaWebhooks(w http.ResponseWriter, r *http.Request) {
+	type data struct{
+		ID uuid.UUID `json:"user_id"`
+	}
+	type parameters struct {
+		Event 	  string `json:"event"`
+		data `json:"data"`
+	}
+
+	apikey,err := auth.GetAPIKey(r.Header)
+	if apikey !=  apiCfg.polkakey{
+		respondWithError(w, http.StatusUnauthorized, "Unauthorize api key", err)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	if params.Event != "user.upgraded" {
+		respondWithError(w,http.StatusNoContent,"event is not upgraded",nil)
+		return
+	}
+
+	_,err = apiCfg.db.UpdateUserChirpyred(context.Background(),params.data.ID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't find user", err)
+		return
+	}
+
+	respondWithJSON(w,http.StatusNoContent,nil)
+
 }
 
 type Chirp struct {

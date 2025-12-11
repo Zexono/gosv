@@ -16,6 +16,7 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	secret string
+	polkakey string
 }
 
 
