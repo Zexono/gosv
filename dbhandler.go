@@ -297,6 +297,47 @@ func chirpGetByIDHandler(w http.ResponseWriter, r *http.Request) {
 	
 }
 
+func chirpDeleteByIDHandler(w http.ResponseWriter, r *http.Request) {
+	ac_token,err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find token", err)
+		return
+	}
+
+	user_id,err := auth.ValidateJWT(ac_token,apiCfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Invalid access token", err)
+		return
+	}
+
+
+	chirp_id,err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get Chirp ID", err)
+		return
+	}
+
+	chirp_db,err := apiCfg.db.GetChirpByID(context.Background(),chirp_id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't found Chirp", err)
+		return
+	}
+	if chirp_db.UserID != user_id {
+		respondWithError(w,http.StatusForbidden, "can't delete because it not your chirp",nil)
+		return
+	}
+
+
+	apiCfg.db.DeleteChirpByID(context.Background(),database.DeleteChirpByIDParams{
+		UserID: user_id,
+		ID: chirp_id,
+	})
+
+
+	respondWithJSON(w, http.StatusNoContent,nil)
+	
+}
+
 func refreshEndpoint(w http.ResponseWriter, r *http.Request) {
 	type returnVals struct {
 		Token string `json:"token"`

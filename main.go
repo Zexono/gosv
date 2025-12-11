@@ -53,6 +53,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", chirpsHandler)
 	mux.HandleFunc("GET /api/chirps", chirpGetHandler)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", chirpGetByIDHandler)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", chirpDeleteByIDHandler)
 
 	mux.HandleFunc("POST /api/refresh", refreshEndpoint)
 	mux.HandleFunc("POST /api/revoke", revokeEndpoint)

@@ -50,6 +50,20 @@ func (q *Queries) DeleteAllChirp(ctx context.Context) error {
 	return err
 }
 
+const deleteChirpByID = `-- name: DeleteChirpByID :exec
+DELETE FROM chirps WHERE user_id = $1 AND id = $2
+`
+
+type DeleteChirpByIDParams struct {
+	UserID uuid.UUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) DeleteChirpByID(ctx context.Context, arg DeleteChirpByIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteChirpByID, arg.UserID, arg.ID)
+	return err
+}
+
 const getAllChirp = `-- name: GetAllChirp :many
 SELECT id, created_at, updated_at, body, user_id FROM chirps ORDER BY created_at
 `
@@ -89,6 +103,28 @@ SELECT id, created_at, updated_at, body, user_id FROM chirps WHERE id = $1
 
 func (q *Queries) GetChirpByID(ctx context.Context, id uuid.UUID) (Chirp, error) {
 	row := q.db.QueryRowContext(ctx, getChirpByID, id)
+	var i Chirp
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Body,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getChirpByIDandUserID = `-- name: GetChirpByIDandUserID :one
+SELECT id, created_at, updated_at, body, user_id FROM chirps WHERE id = $1 AND user_id = $2
+`
+
+type GetChirpByIDandUserIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetChirpByIDandUserID(ctx context.Context, arg GetChirpByIDandUserIDParams) (Chirp, error) {
+	row := q.db.QueryRowContext(ctx, getChirpByIDandUserID, arg.ID, arg.UserID)
 	var i Chirp
 	err := row.Scan(
 		&i.ID,
