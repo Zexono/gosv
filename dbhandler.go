@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/Zexono/gosv/internal/auth"
@@ -290,10 +291,12 @@ func chirpGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := r.URL.Query().Get("author_id")
+	author := r.URL.Query().Get("author_id")
+	sort_by := r.URL.Query().Get("sort")
+
 	var uid uuid.UUID
-	if s != "" {
-		uid,err = uuid.Parse(s)
+	if author != "" {
+		uid,err = uuid.Parse(author)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Couldn't Parse uuid", err)
 			return
@@ -313,6 +316,10 @@ func chirpGetHandler(w http.ResponseWriter, r *http.Request) {
 			Body: v.Body,
 			User_id: v.UserID,
 		})
+	}
+
+	if sort_by == "desc" {
+		sort.Slice(c,func(i, j int) bool { return c[i].CreatedAt.After(c[j].CreatedAt) })
 	}
 	respondWithJSON(w, http.StatusOK,c)
 }
