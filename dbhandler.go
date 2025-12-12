@@ -283,23 +283,29 @@ func chirpsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func chirpGetHandler(w http.ResponseWriter, r *http.Request) {
+
 	chirp_db ,err := apiCfg.db.GetAllChirp(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get Chirp", err)
 		return
 	}
-	//log.Println(db)
 
+	s := r.URL.Query().Get("author_id")
+	var uid uuid.UUID
+	if s != "" {
+		uid,err = uuid.Parse(s)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't Parse uuid", err)
+			return
+		}
+	}
 	
+
 	var c []Chirp
 	for _, v := range chirp_db {
-		/*c[i] = Chirp{
-			ID: v.ID,
-			CreatedAt: v.CreatedAt,
-			UpdatedAt: v.UpdatedAt,
-			Body: v.Body,
-			User_id: v.UserID,
-		}*/
+		if uid != uuid.Nil && v.UserID != uid {
+			continue
+		}
 		c = append(c, Chirp{			
 			ID: v.ID,
 			CreatedAt: v.CreatedAt,
@@ -309,7 +315,6 @@ func chirpGetHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	respondWithJSON(w, http.StatusOK,c)
-	
 }
 
 func chirpGetByIDHandler(w http.ResponseWriter, r *http.Request) {
